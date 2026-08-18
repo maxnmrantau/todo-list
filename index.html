@@ -62,6 +62,10 @@
           <i data-lucide="volume-2" id="sound-icon"></i>
         </button>
 
+        <button class="icon-btn" id="btn-reminder-settings" title="Pengaturan Pengingat & Nada Suara" aria-label="Pengaturan Pengingat">
+          <i data-lucide="bell" id="bell-icon"></i>
+        </button>
+
         <!-- Segmented Theme Switcher -->
         <div class="theme-switcher-pill" id="theme-switcher-pill" role="radiogroup" aria-label="Pilih Tema">
           <button type="button" class="theme-pill-btn active" data-theme-val="dark" title="Dark Slate">
@@ -218,8 +222,13 @@
                 </div>
 
                 <div class="form-group">
-                  <label for="task-input-due"><i data-lucide="calendar"></i> Tenggat Waktu</label>
+                  <label for="task-input-due"><i data-lucide="calendar"></i> Tenggat Tanggal</label>
                   <input type="date" id="task-input-due" class="custom-date-input">
+                </div>
+
+                <div class="form-group">
+                  <label for="task-input-time"><i data-lucide="clock"></i> Jam / Waktu</label>
+                  <input type="time" id="task-input-time" class="custom-time-input">
                 </div>
 
                 <div class="form-group">
@@ -389,8 +398,12 @@
             </select>
           </div>
           <div class="form-group">
-            <label for="edit-task-due"><i data-lucide="calendar"></i> Tenggat Waktu</label>
+            <label for="edit-task-due"><i data-lucide="calendar"></i> Tenggat Tanggal</label>
             <input type="date" id="edit-task-due" class="custom-date-input">
+          </div>
+          <div class="form-group">
+            <label for="edit-task-time"><i data-lucide="clock"></i> Jam / Waktu</label>
+            <input type="time" id="edit-task-time" class="custom-time-input">
           </div>
           <div class="form-group">
             <label for="edit-task-recurring"><i data-lucide="repeat"></i> Pengulangan</label>
@@ -539,6 +552,132 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn-secondary" id="btn-cancel-backup-modal">Tutup</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: PENGATURAN PENGINGAT & NADA SUARA -->
+  <div class="modal-backdrop" id="modal-sound-settings" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title"><i data-lucide="bell-ring"></i> Pengaturan Pengingat & Nada Audio</h3>
+        <button class="modal-close-btn" id="btn-close-sound-modal">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <!-- Section 1: Daily Briefing Alarm -->
+        <div class="settings-section-card">
+          <div class="section-card-header">
+            <div>
+              <h4 class="section-card-title">⏰ Rekap Jadwal Harian (Daily Briefing)</h4>
+              <p class="section-card-desc">Putar alarm dan tampilkan ringkasan tugas otomatis pada jam tertentu setiap hari.</p>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" id="setting-briefing-enable" checked>
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <div class="briefing-time-row" id="briefing-time-wrap">
+            <label for="setting-briefing-time"><i data-lucide="clock"></i> Jam Rekap Harian:</label>
+            <input type="time" id="setting-briefing-time" class="custom-time-input" value="08:00">
+            <button type="button" class="btn-secondary-sm" id="btn-test-briefing" title="Buka Pratinjau Rekap">
+              <i data-lucide="sparkles"></i> Buka Rekap Hari Ini
+            </button>
+          </div>
+        </div>
+
+        <!-- Section 2: Sound & Custom Audio Upload -->
+        <div class="settings-section-card">
+          <h4 class="section-card-title">🎵 Pilihan Nada Alarm & Pengingat</h4>
+          <p class="section-card-desc">Pilih nada bawaan berharmoni tinggi atau unggah file musik/audio Anda sendiri.</p>
+
+          <div class="form-group mt-2">
+            <label for="setting-sound-tone">Pilih Nada Suara</label>
+            <select id="setting-sound-tone" class="custom-select">
+              <option value="chime">🎵 Chime Harmoni (Default Melodis)</option>
+              <option value="bell">🔔 Bell Kristal</option>
+              <option value="digital">📟 Digital Beep Modern</option>
+              <option value="zen">🧘 Zen Bowl Relaksasi</option>
+              <option value="custom">📁 File Audio Kustom (Upload Sendiri)</option>
+            </select>
+          </div>
+
+          <!-- Custom Audio Upload Box -->
+          <div class="custom-audio-box" id="custom-audio-box" style="display: none;">
+            <div class="audio-upload-dropzone">
+              <input type="file" id="setting-audio-file" accept="audio/*" style="display:none;">
+              <button type="button" class="btn-secondary" id="btn-trigger-audio-upload">
+                <i data-lucide="upload-cloud"></i> Unggah File Audio (MP3, WAV, OGG, M4A)
+              </button>
+              <span class="audio-file-name" id="custom-audio-filename">Belum ada file audio kustom yang diunggah</span>
+            </div>
+            <div class="custom-audio-controls" id="custom-audio-controls" style="display: none;">
+              <button type="button" class="btn-secondary-sm text-danger" id="btn-reset-audio">
+                <i data-lucide="trash-2"></i> Hapus Audio Kustom
+              </button>
+            </div>
+          </div>
+
+          <!-- Audio Test & Volume Player Bar -->
+          <div class="audio-player-preview-bar">
+            <button type="button" class="btn-primary-sm" id="btn-test-sound">
+              <i data-lucide="play" id="test-sound-icon"></i>
+              <span id="test-sound-text">Tes Putar Nada</span>
+            </button>
+            <div class="volume-slider-box">
+              <i data-lucide="volume-2" style="width:16px;height:16px;color:var(--text-muted);"></i>
+              <input type="range" id="setting-audio-volume" class="custom-range" min="0" max="100" value="80">
+              <span class="volume-val" id="volume-display-val">80%</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 3: Browser Push Notification -->
+        <div class="settings-section-card">
+          <div class="section-card-header">
+            <div>
+              <h4 class="section-card-title">🌐 Izin Notifikasi Desktop / Browser</h4>
+              <p class="section-card-desc">Aktifkan notifikasi desktop agar pengingat tetap muncul saat Anda berpindah tab atau aplikasi.</p>
+            </div>
+            <button type="button" class="btn-secondary-sm" id="btn-request-notification">
+              <i data-lucide="bell"></i> <span id="notification-perm-status">Aktifkan Notifikasi</span>
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-primary" id="btn-close-sound-modal-save">Tutup</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: REKAP JADWAL HARI INI (DAILY BRIEFING) -->
+  <div class="modal-backdrop" id="modal-daily-briefing" style="display: none;">
+    <div class="modal-card modal-briefing">
+      <div class="briefing-hero-header">
+        <div class="briefing-icon-badge">
+          <i data-lucide="bell-ring"></i>
+        </div>
+        <div class="briefing-header-text">
+          <span class="briefing-pill-date" id="briefing-today-date">📅 Hari Ini</span>
+          <h3 class="briefing-title">Jadwal Tugas Hari Ini</h3>
+          <p class="briefing-subtitle" id="briefing-summary-count">Memuat ringkasan tugas...</p>
+        </div>
+        <button class="modal-close-btn" id="btn-close-briefing-modal">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+      <div class="modal-body briefing-modal-body">
+        <div class="briefing-tasks-list" id="briefing-tasks-container">
+          <!-- Filled dynamically by JS -->
+        </div>
+      </div>
+      <div class="modal-footer briefing-footer">
+        <button type="button" class="btn-secondary" id="btn-snooze-briefing">Tutup</button>
+        <button type="button" class="btn-primary" id="btn-action-start-day">
+          <i data-lucide="check-check"></i> Siap, Mulai Kerjakan!
+        </button>
       </div>
     </div>
   </div>

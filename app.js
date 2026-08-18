@@ -39,7 +39,14 @@ import {
   DollarSign, 
   Heart, 
   Tag,
-  Repeat 
+  Repeat,
+  Bell,
+  BellRing,
+  Clock,
+  UploadCloud,
+  Play,
+  Square,
+  Music
 } from 'lucide';
 import confetti from 'canvas-confetti';
 
@@ -83,7 +90,14 @@ const appIcons = {
   DollarSign, 
   Heart, 
   Tag,
-  Repeat
+  Repeat,
+  Bell,
+  BellRing,
+  Clock,
+  UploadCloud,
+  Play,
+  Square,
+  Music
 };
 
 // ==========================================================================
@@ -95,6 +109,10 @@ const STORAGE_KEYS = {
   CATEGORIES: 'auratasks_data_categories',
   THEME: 'auratasks_setting_theme',
   SOUND: 'auratasks_setting_sound',
+  SOUND_CONFIG: 'auratasks_setting_sound_config',
+  CUSTOM_AUDIO: 'auratasks_data_custom_audio',
+  CUSTOM_AUDIO_NAME: 'auratasks_data_custom_audio_name',
+  BRIEFING_LAST_DATE: 'auratasks_data_briefing_last_date',
   STREAK: 'auratasks_data_streak',
   LAST_DATE: 'auratasks_data_last_date'
 };
@@ -115,6 +133,7 @@ const SAMPLE_TASKS = [
     category: 'work',
     priority: 'urgent',
     dueDate: new Date().toISOString().split('T')[0],
+    dueTime: '09:00',
     completed: false,
     pinned: true,
     subtasks: [
@@ -131,6 +150,7 @@ const SAMPLE_TASKS = [
     category: 'work',
     priority: 'high',
     dueDate: new Date().toISOString().split('T')[0],
+    dueTime: '13:30',
     completed: true,
     pinned: false,
     subtasks: [
@@ -146,6 +166,7 @@ const SAMPLE_TASKS = [
     category: 'study',
     priority: 'medium',
     dueDate: getRelativeDateString(1),
+    dueTime: '20:00',
     completed: false,
     pinned: false,
     subtasks: [],
@@ -158,6 +179,7 @@ const SAMPLE_TASKS = [
     category: 'health',
     priority: 'low',
     dueDate: new Date().toISOString().split('T')[0],
+    dueTime: '07:30',
     completed: false,
     pinned: false,
     recurring: { type: 'daily', days: [] },
@@ -171,6 +193,7 @@ const SAMPLE_TASKS = [
     category: 'work',
     priority: 'medium',
     dueDate: new Date().toISOString().split('T')[0],
+    dueTime: '16:00',
     completed: false,
     pinned: false,
     recurring: { type: 'custom', days: [1, 4] },
@@ -200,6 +223,15 @@ class AppState {
     this.categories = this.loadFromStorage(STORAGE_KEYS.CATEGORIES, DEFAULT_CATEGORIES);
     this.theme = localStorage.getItem(STORAGE_KEYS.THEME) || 'dark';
     this.soundEnabled = localStorage.getItem(STORAGE_KEYS.SOUND) !== 'false';
+    this.soundConfig = this.loadFromStorage(STORAGE_KEYS.SOUND_CONFIG, {
+      tone: 'chime',
+      volume: 80,
+      briefingEnabled: true,
+      briefingTime: '08:00'
+    });
+    this.customAudio = localStorage.getItem(STORAGE_KEYS.CUSTOM_AUDIO) || null;
+    this.customAudioName = localStorage.getItem(STORAGE_KEYS.CUSTOM_AUDIO_NAME) || '';
+    this.lastBriefingDate = localStorage.getItem(STORAGE_KEYS.BRIEFING_LAST_DATE) || '';
     this.streak = parseInt(localStorage.getItem(STORAGE_KEYS.STREAK) || '1', 10);
     this.lastActiveDate = localStorage.getItem(STORAGE_KEYS.LAST_DATE) || new Date().toISOString().split('T')[0];
 
@@ -246,6 +278,10 @@ class AppState {
     localStorage.setItem(STORAGE_KEYS.SOUND, this.soundEnabled.toString());
   }
 
+  saveSoundConfig() {
+    localStorage.setItem(STORAGE_KEYS.SOUND_CONFIG, JSON.stringify(this.soundConfig));
+  }
+
   checkStreak() {
     const today = new Date().toISOString().split('T')[0];
     if (this.lastActiveDate !== today) {
@@ -269,12 +305,13 @@ class AppState {
 const state = new AppState();
 
 // ==========================================================================
-// SOUND SYNTHESIS ENGINE (Web Audio API — Zero Asset Dependencies)
+// SOUND SYNTHESIS ENGINE (Web Audio API + Custom Audio Support)
 // ==========================================================================
 
 class SoundEngine {
   constructor() {
     this.ctx = null;
+    this.activeAudio = null;
   }
 
   initContext() {
@@ -287,20 +324,25 @@ class SoundEngine {
     }
   }
 
+  getVolume() {
+    return (state.soundConfig?.volume ?? 80) / 100;
+  }
+
   playPop() {
     if (!state.soundEnabled) return;
     this.initContext();
     if (!this.ctx) return;
 
     try {
+      const vol = this.getVolume();
       const osc = this.ctx.createOscillator();
       const gain = this.ctx.createGain();
       osc.type = 'sine';
       osc.frequency.setValueAtTime(440, this.ctx.currentTime);
       osc.frequency.exponentialRampToValueAtTime(880, this.ctx.currentTime + 0.08);
 
-      gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.08);
+      gain.gain.setValueAtTime(0.2 * vol, this.ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01 * vol, this.ctx.currentTime + 0.08);
 
       osc.connect(gain);
       gain.connect(this.ctx.destination);
@@ -316,6 +358,7 @@ class SoundEngine {
     if (!this.ctx) return;
 
     try {
+      const vol = this.getVolume();
       const now = this.ctx.currentTime;
       const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
       notes.forEach((freq, i) => {
@@ -324,7 +367,7 @@ class SoundEngine {
         osc.type = 'triangle';
         osc.frequency.setValueAtTime(freq, now + i * 0.06);
 
-        gain.gain.setValueAtTime(0.25, now + i * 0.06);
+        gain.gain.setValueAtTime(0.25 * vol, now + i * 0.06);
         gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.06 + 0.25);
 
         osc.connect(gain);
@@ -342,14 +385,15 @@ class SoundEngine {
     if (!this.ctx) return;
 
     try {
+      const vol = this.getVolume();
       const osc = this.ctx.createOscillator();
       const gain = this.ctx.createGain();
       osc.type = 'sawtooth';
       osc.frequency.setValueAtTime(320, this.ctx.currentTime);
       osc.frequency.exponentialRampToValueAtTime(140, this.ctx.currentTime + 0.12);
 
-      gain.gain.setValueAtTime(0.18, this.ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.12);
+      gain.gain.setValueAtTime(0.18 * vol, this.ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01 * vol, this.ctx.currentTime + 0.12);
 
       osc.connect(gain);
       gain.connect(this.ctx.destination);
@@ -357,6 +401,155 @@ class SoundEngine {
       osc.start();
       osc.stop(this.ctx.currentTime + 0.12);
     } catch (e) { /* ignore sound error */ }
+  }
+
+  playChime() {
+    this.initContext();
+    if (!this.ctx) return;
+    try {
+      const vol = this.getVolume();
+      const now = this.ctx.currentTime;
+      const notes = [523.25, 659.25, 783.99, 1046.50, 1318.51]; // C5, E5, G5, C6, E6
+      notes.forEach((freq, i) => {
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, now + i * 0.09);
+
+        gain.gain.setValueAtTime(0.3 * vol, now + i * 0.09);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.09 + 0.6);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+
+        osc.start(now + i * 0.09);
+        osc.stop(now + i * 0.09 + 0.65);
+      });
+    } catch (e) { /* ignore sound error */ }
+  }
+
+  playBell() {
+    this.initContext();
+    if (!this.ctx) return;
+    try {
+      const vol = this.getVolume();
+      const now = this.ctx.currentTime;
+      const chords = [
+        [659.25, 1318.51, 2637.02], // E5, E6, E7
+        [880.00, 1760.00, 3520.00], // A5, A6, A7
+        [1046.50, 2093.00, 4186.01] // C6, C7, C8
+      ];
+      chords.forEach((chord, i) => {
+        chord.forEach((freq, j) => {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, now + i * 0.14);
+
+          gain.gain.setValueAtTime((0.18 / (j + 1)) * vol, now + i * 0.14);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.14 + 0.7);
+
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+
+          osc.start(now + i * 0.14);
+          osc.stop(now + i * 0.14 + 0.75);
+        });
+      });
+    } catch (e) { /* ignore sound error */ }
+  }
+
+  playDigital() {
+    this.initContext();
+    if (!this.ctx) return;
+    try {
+      const vol = this.getVolume();
+      const now = this.ctx.currentTime;
+      const beeps = [880, 1174.66, 1760]; // A5, D6, A6
+      beeps.forEach((freq, i) => {
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(freq, now + i * 0.08);
+
+        gain.gain.setValueAtTime(0.12 * vol, now + i * 0.08);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.08 + 0.07);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+
+        osc.start(now + i * 0.08);
+        osc.stop(now + i * 0.08 + 0.07);
+      });
+    } catch (e) { /* ignore sound error */ }
+  }
+
+  playZen() {
+    this.initContext();
+    if (!this.ctx) return;
+    try {
+      const vol = this.getVolume();
+      const now = this.ctx.currentTime;
+      const bowlFreqs = [216, 432, 648]; // 432Hz harmonic bowl
+      bowlFreqs.forEach((freq, idx) => {
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, now);
+
+        gain.gain.setValueAtTime((0.3 / (idx + 1)) * vol, now);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 2.2);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+
+        osc.start(now);
+        osc.stop(now + 2.25);
+      });
+    } catch (e) { /* ignore sound error */ }
+  }
+
+  playPresetTone(tone) {
+    if (tone === 'bell') this.playBell();
+    else if (tone === 'digital') this.playDigital();
+    else if (tone === 'zen') this.playZen();
+    else this.playChime();
+  }
+
+  playCustomAudio(dataUrl, onEnded) {
+    this.stopAlarm();
+    try {
+      const audio = new Audio(dataUrl);
+      audio.volume = this.getVolume();
+      this.activeAudio = audio;
+      if (onEnded) {
+        audio.onended = () => {
+          this.activeAudio = null;
+          onEnded();
+        };
+      }
+      audio.play().catch(e => console.warn('Audio play error', e));
+    } catch (e) {
+      console.warn('Custom audio init error', e);
+    }
+  }
+
+  playAlarm(onEnded) {
+    if (!state.soundEnabled) return;
+    if (state.soundConfig.tone === 'custom' && state.customAudio) {
+      this.playCustomAudio(state.customAudio, onEnded);
+    } else {
+      this.playPresetTone(state.soundConfig.tone || 'chime');
+      if (onEnded) setTimeout(onEnded, 1500);
+    }
+  }
+
+  stopAlarm() {
+    if (this.activeAudio) {
+      this.activeAudio.pause();
+      this.activeAudio.currentTime = 0;
+      this.activeAudio = null;
+    }
   }
 }
 
@@ -372,6 +565,7 @@ const DOM = {
   currentDateText: document.getElementById('current-date-text'),
   streakCount: document.getElementById('streak-count'),
   btnSoundToggle: document.getElementById('btn-sound-toggle'),
+  btnReminderSettings: document.getElementById('btn-reminder-settings'),
   themeSwitcherPill: document.getElementById('theme-switcher-pill'),
   btnBackupMenu: document.getElementById('btn-backup-menu'),
 
@@ -399,6 +593,7 @@ const DOM = {
   taskInputCategory: document.getElementById('task-input-category'),
   taskInputPriority: document.getElementById('task-input-priority'),
   taskInputDue: document.getElementById('task-input-due'),
+  taskInputTime: document.getElementById('task-input-time'),
   taskInputRecurring: document.getElementById('task-input-recurring'),
   taskInputDaysContainer: document.getElementById('task-input-days-container'),
   taskAddDaySelector: document.getElementById('task-add-day-selector'),
@@ -436,6 +631,7 @@ const DOM = {
   editTaskCategory: document.getElementById('edit-task-category'),
   editTaskPriority: document.getElementById('edit-task-priority'),
   editTaskDue: document.getElementById('edit-task-due'),
+  editTaskTime: document.getElementById('edit-task-time'),
   editTaskRecurring: document.getElementById('edit-task-recurring'),
   editTaskDaysContainer: document.getElementById('edit-task-days-container'),
   editTaskDaySelector: document.getElementById('edit-task-day-selector'),
@@ -453,6 +649,37 @@ const DOM = {
   catColorPalette: document.getElementById('cat-color-palette'),
   btnCloseCatModal: document.getElementById('btn-close-cat-modal'),
   btnCancelCatModal: document.getElementById('btn-cancel-cat-modal'),
+
+  // Sound Settings Modal
+  modalSoundSettings: document.getElementById('modal-sound-settings'),
+  btnCloseSoundModal: document.getElementById('btn-close-sound-modal'),
+  btnCloseSoundModalSave: document.getElementById('btn-close-sound-modal-save'),
+  settingBriefingEnable: document.getElementById('setting-briefing-enable'),
+  settingBriefingTime: document.getElementById('setting-briefing-time'),
+  btnTestBriefing: document.getElementById('btn-test-briefing'),
+  settingSoundTone: document.getElementById('setting-sound-tone'),
+  customAudioBox: document.getElementById('custom-audio-box'),
+  settingAudioFile: document.getElementById('setting-audio-file'),
+  btnTriggerAudioUpload: document.getElementById('btn-trigger-audio-upload'),
+  customAudioFilename: document.getElementById('custom-audio-filename'),
+  customAudioControls: document.getElementById('custom-audio-controls'),
+  btnResetAudio: document.getElementById('btn-reset-audio'),
+  btnTestSound: document.getElementById('btn-test-sound'),
+  testSoundIcon: document.getElementById('test-sound-icon'),
+  testSoundText: document.getElementById('test-sound-text'),
+  settingAudioVolume: document.getElementById('setting-audio-volume'),
+  volumeDisplayVal: document.getElementById('volume-display-val'),
+  btnRequestNotification: document.getElementById('btn-request-notification'),
+  notificationPermStatus: document.getElementById('notification-perm-status'),
+
+  // Daily Briefing Modal
+  modalDailyBriefing: document.getElementById('modal-daily-briefing'),
+  briefingTodayDate: document.getElementById('briefing-today-date'),
+  briefingSummaryCount: document.getElementById('briefing-summary-count'),
+  briefingTasksContainer: document.getElementById('briefing-tasks-container'),
+  btnCloseBriefingModal: document.getElementById('btn-close-briefing-modal'),
+  btnSnoozeBriefing: document.getElementById('btn-snooze-briefing'),
+  btnActionStartDay: document.getElementById('btn-action-start-day'),
 
   // Backup Modal
   modalBackup: document.getElementById('modal-backup'),
@@ -589,10 +816,12 @@ function initApp() {
   renderCategorySelects();
   renderCategorySidebar();
   updateDaySelectorChips(DOM.taskAddDaySelector, draftRecurringDays);
+  updateSoundSettingsUI();
   renderTasks();
   updateStats();
   initEventListeners();
   refreshLucideIcons();
+  startReminderEngine();
 }
 
 function refreshLucideIcons() {
@@ -803,24 +1032,37 @@ function createTaskCardHtml(task) {
   const category = state.categories.find(c => c.id === task.category) || { name: 'Umum', color: '#6366f1' };
   const todayStr = new Date().toISOString().split('T')[0];
 
-  // Due Date Formatting
+  // Due Date & Time Formatting
   let dueHtml = '';
   if (task.dueDate) {
     let dueClass = '';
     let dueLabel = formatShortDate(task.dueDate);
+    if (task.dueTime) {
+      dueLabel += ` (${task.dueTime})`;
+    }
+
+    const todayStr = new Date().toISOString().split('T')[0];
+    const nowHours = String(new Date().getHours()).padStart(2, '0');
+    const nowMins = String(new Date().getMinutes()).padStart(2, '0');
+    const currentTimeStr = `${nowHours}:${nowMins}`;
 
     if (task.dueDate < todayStr && !task.completed) {
       dueClass = 'due-overdue';
       dueLabel = `⚠️ Lewat: ${dueLabel}`;
     } else if (task.dueDate === todayStr) {
-      dueClass = 'due-today';
-      dueLabel = `⭐ Hari Ini`;
+      if (task.dueTime && task.dueTime < currentTimeStr && !task.completed) {
+        dueClass = 'due-overdue';
+        dueLabel = `⚠️ Lewat: Hari Ini ${task.dueTime}`;
+      } else {
+        dueClass = 'due-today';
+        dueLabel = `⭐ Hari Ini${task.dueTime ? ' ' + task.dueTime : ''}`;
+      }
     }
 
     dueHtml = `
-      <span class="meta-pill meta-pill-due ${dueClass}">
-        <i data-lucide="calendar" style="width:12px;height:12px;"></i>
-        <span>${dueLabel}</span>
+      <span class="meta-pill meta-pill-due ${dueClass}" title="Tenggat Waktu: ${escapeHtml(dueLabel)}">
+        <i data-lucide="${task.dueTime ? 'clock' : 'calendar'}" style="width:12px;height:12px;"></i>
+        <span>${escapeHtml(dueLabel)}</span>
       </span>
     `;
   }
@@ -992,6 +1234,7 @@ function handleAddTask(e) {
     category: DOM.taskInputCategory.value || 'work',
     priority: DOM.taskInputPriority.value || 'medium',
     dueDate: DOM.taskInputDue.value || '',
+    dueTime: DOM.taskInputTime ? DOM.taskInputTime.value : '',
     recurring: {
       type: recurType,
       days: recurDays
@@ -1012,6 +1255,7 @@ function handleAddTask(e) {
   renderDraftSubtasks();
   if (DOM.taskInputRecurring) DOM.taskInputRecurring.value = 'none';
   if (DOM.taskInputDaysContainer) DOM.taskInputDaysContainer.style.display = 'none';
+  if (DOM.taskInputTime) DOM.taskInputTime.value = '';
   draftRecurringDays = [1, 2, 3, 4, 5];
   updateDaySelectorChips(DOM.taskAddDaySelector, draftRecurringDays);
   DOM.taskDetailsDrawer.classList.remove('open');
@@ -1182,6 +1426,9 @@ function openEditModal(taskId) {
   DOM.editTaskCategory.value = task.category;
   DOM.editTaskPriority.value = task.priority;
   DOM.editTaskDue.value = task.dueDate || '';
+  if (DOM.editTaskTime) {
+    DOM.editTaskTime.value = task.dueTime || '';
+  }
   DOM.editTaskDesc.value = task.description || '';
 
   if (DOM.editTaskRecurring) {
@@ -1322,6 +1569,7 @@ function handleSaveEditTask(e) {
   task.category = DOM.editTaskCategory.value;
   task.priority = DOM.editTaskPriority.value;
   task.dueDate = DOM.editTaskDue.value;
+  task.dueTime = DOM.editTaskTime ? DOM.editTaskTime.value : '';
   task.recurring = {
     type: editRecurType,
     days: editRecurType === 'custom' ? [...modalRecurringDays] : (editRecurType === 'workdays' ? [1, 2, 3, 4, 5] : [])
@@ -1903,6 +2151,150 @@ function initEventListeners() {
     }
   });
 
+  // Sound Settings Modal Handlers
+  if (DOM.btnReminderSettings) {
+    DOM.btnReminderSettings.addEventListener('click', () => {
+      updateSoundSettingsUI();
+      DOM.modalSoundSettings.style.display = 'flex';
+      refreshLucideIcons();
+    });
+  }
+
+  if (DOM.btnCloseSoundModal) {
+    DOM.btnCloseSoundModal.addEventListener('click', () => {
+      soundEngine.stopAlarm();
+      isTestingAudio = false;
+      updateTestSoundBtn(false);
+      DOM.modalSoundSettings.style.display = 'none';
+    });
+  }
+
+  if (DOM.btnCloseSoundModalSave) {
+    DOM.btnCloseSoundModalSave.addEventListener('click', () => {
+      soundEngine.stopAlarm();
+      isTestingAudio = false;
+      updateTestSoundBtn(false);
+      DOM.modalSoundSettings.style.display = 'none';
+      showToast('Pengaturan suara & pengingat disimpan! 🔔', 'success');
+    });
+  }
+
+  if (DOM.settingBriefingEnable) {
+    DOM.settingBriefingEnable.addEventListener('change', (e) => {
+      state.soundConfig.briefingEnabled = e.target.checked;
+      state.saveSoundConfig();
+      soundEngine.playPop();
+    });
+  }
+
+  if (DOM.settingBriefingTime) {
+    DOM.settingBriefingTime.addEventListener('change', (e) => {
+      state.soundConfig.briefingTime = e.target.value;
+      state.saveSoundConfig();
+      soundEngine.playPop();
+    });
+  }
+
+  if (DOM.btnTestBriefing) {
+    DOM.btnTestBriefing.addEventListener('click', () => {
+      openDailyBriefingModal(false);
+    });
+  }
+
+  if (DOM.settingSoundTone) {
+    DOM.settingSoundTone.addEventListener('change', (e) => {
+      state.soundConfig.tone = e.target.value;
+      state.saveSoundConfig();
+      updateSoundSettingsUI();
+      if (e.target.value !== 'custom') {
+        soundEngine.playPresetTone(e.target.value);
+      } else if (state.customAudio) {
+        soundEngine.playCustomAudio(state.customAudio);
+      }
+    });
+  }
+
+  if (DOM.btnTriggerAudioUpload) {
+    DOM.btnTriggerAudioUpload.addEventListener('click', () => {
+      DOM.settingAudioFile.click();
+    });
+  }
+
+  if (DOM.settingAudioFile) {
+    DOM.settingAudioFile.addEventListener('change', handleAudioFileUpload);
+  }
+
+  if (DOM.btnResetAudio) {
+    DOM.btnResetAudio.addEventListener('click', handleResetCustomAudio);
+  }
+
+  if (DOM.btnTestSound) {
+    DOM.btnTestSound.addEventListener('click', toggleTestSound);
+  }
+
+  if (DOM.settingAudioVolume) {
+    DOM.settingAudioVolume.addEventListener('input', (e) => {
+      const vol = parseInt(e.target.value, 10);
+      state.soundConfig.volume = vol;
+      state.saveSoundConfig();
+      if (DOM.volumeDisplayVal) {
+        DOM.volumeDisplayVal.textContent = `${vol}%`;
+      }
+    });
+  }
+
+  if (DOM.btnRequestNotification) {
+    DOM.btnRequestNotification.addEventListener('click', async () => {
+      if ('Notification' in window) {
+        try {
+          const res = await Notification.requestPermission();
+          updateNotificationPermBtn();
+          if (res === 'granted') {
+            showToast('Notifikasi desktop browser berhasil diizinkan! 🔔', 'success');
+            sendBrowserNotification('AuraTasks Notification', {
+              body: 'Izin notifikasi telah aktif. Anda akan menerima pengingat jadwal tugas!',
+              icon: '/favicon.svg'
+            });
+          } else {
+            showToast('Izin notifikasi tidak diberikan', 'info');
+          }
+        } catch (e) {
+          console.warn(e);
+        }
+      }
+    });
+  }
+
+  // Daily Briefing Modal Handlers
+  if (DOM.btnCloseBriefingModal) {
+    DOM.btnCloseBriefingModal.addEventListener('click', () => {
+      DOM.modalDailyBriefing.style.display = 'none';
+    });
+  }
+
+  if (DOM.btnSnoozeBriefing) {
+    DOM.btnSnoozeBriefing.addEventListener('click', () => {
+      DOM.modalDailyBriefing.style.display = 'none';
+    });
+  }
+
+  if (DOM.btnActionStartDay) {
+    DOM.btnActionStartDay.addEventListener('click', () => {
+      DOM.modalDailyBriefing.style.display = 'none';
+      state.statusFilter = 'today';
+      DOM.filterTabs.forEach(t => {
+        if (t.getAttribute('data-status') === 'today') {
+          t.classList.add('active');
+        } else {
+          t.classList.remove('active');
+        }
+      });
+      renderTasks();
+      soundEngine.playPop();
+      DOM.tasksContainer.scrollIntoView({ behavior: 'smooth' });
+    });
+  }
+
   // Close menus on outside click
   document.addEventListener('click', (e) => {
     if (DOM.bulkDropdownWrap && !DOM.bulkDropdownWrap.contains(e.target)) {
@@ -1922,9 +2314,258 @@ function initEventListeners() {
       DOM.modalEditTask.style.display = 'none';
       DOM.modalCategory.style.display = 'none';
       DOM.modalBackup.style.display = 'none';
+      if (DOM.modalSoundSettings) {
+        soundEngine.stopAlarm();
+        isTestingAudio = false;
+        updateTestSoundBtn(false);
+        DOM.modalSoundSettings.style.display = 'none';
+      }
+      if (DOM.modalDailyBriefing) DOM.modalDailyBriefing.style.display = 'none';
       if (DOM.bulkDropdownWrap) DOM.bulkDropdownWrap.classList.remove('open');
     }
   });
+}
+
+// ==========================================================================
+// SOUND & REMINDER SETTINGS LOGIC
+// ==========================================================================
+
+let isTestingAudio = false;
+
+function updateSoundSettingsUI() {
+  if (DOM.settingBriefingEnable) {
+    DOM.settingBriefingEnable.checked = state.soundConfig.briefingEnabled !== false;
+  }
+  if (DOM.settingBriefingTime) {
+    DOM.settingBriefingTime.value = state.soundConfig.briefingTime || '08:00';
+  }
+  if (DOM.settingSoundTone) {
+    DOM.settingSoundTone.value = state.soundConfig.tone || 'chime';
+  }
+  if (DOM.settingAudioVolume) {
+    DOM.settingAudioVolume.value = state.soundConfig.volume ?? 80;
+  }
+  if (DOM.volumeDisplayVal) {
+    DOM.volumeDisplayVal.textContent = `${state.soundConfig.volume ?? 80}%`;
+  }
+
+  // Custom Audio Box Visibility
+  const isCustom = state.soundConfig.tone === 'custom';
+  if (DOM.customAudioBox) {
+    DOM.customAudioBox.style.display = isCustom ? 'flex' : 'none';
+  }
+  if (DOM.customAudioFilename) {
+    DOM.customAudioFilename.textContent = state.customAudioName 
+      ? `📁 ${state.customAudioName}` 
+      : 'Belum ada file audio yang diunggah';
+  }
+  if (DOM.customAudioControls) {
+    DOM.customAudioControls.style.display = state.customAudio ? 'flex' : 'none';
+  }
+
+  // Notification Permission Status
+  updateNotificationPermBtn();
+}
+
+function updateNotificationPermBtn() {
+  if (!DOM.notificationPermStatus) return;
+  if (!('Notification' in window)) {
+    DOM.notificationPermStatus.textContent = 'Tidak Didukung Browser';
+    return;
+  }
+  if (Notification.permission === 'granted') {
+    DOM.notificationPermStatus.textContent = '✅ Notifikasi Aktif';
+    if (DOM.btnRequestNotification) DOM.btnRequestNotification.disabled = true;
+  } else if (Notification.permission === 'denied') {
+    DOM.notificationPermStatus.textContent = '❌ Izin Ditolak Browser';
+  } else {
+    DOM.notificationPermStatus.textContent = 'Aktifkan Notifikasi';
+  }
+}
+
+function handleAudioFileUpload(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  if (file.size > 8 * 1024 * 1024) {
+    showToast('Ukuran file audio maksimal 8MB', 'warning');
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = (evt) => {
+    try {
+      const dataUrl = evt.target.result;
+      state.customAudio = dataUrl;
+      state.customAudioName = file.name;
+      localStorage.setItem(STORAGE_KEYS.CUSTOM_AUDIO, dataUrl);
+      localStorage.setItem(STORAGE_KEYS.CUSTOM_AUDIO_NAME, file.name);
+
+      state.soundConfig.tone = 'custom';
+      state.saveSoundConfig();
+
+      updateSoundSettingsUI();
+      soundEngine.playCustomAudio(dataUrl);
+      showToast(`Audio "${file.name}" berhasil disimpan! 🎵`, 'success');
+    } catch (err) {
+      showToast('Gagal menyimpan file audio: ' + err.message, 'danger');
+    }
+  };
+  reader.readAsDataURL(file);
+}
+
+function handleResetCustomAudio() {
+  state.customAudio = null;
+  state.customAudioName = '';
+  localStorage.removeItem(STORAGE_KEYS.CUSTOM_AUDIO);
+  localStorage.removeItem(STORAGE_KEYS.CUSTOM_AUDIO_NAME);
+
+  state.soundConfig.tone = 'chime';
+  state.saveSoundConfig();
+
+  updateSoundSettingsUI();
+  showToast('Audio kustom dihapus, kembali ke nada Chime Harmoni', 'info');
+}
+
+function toggleTestSound() {
+  if (isTestingAudio) {
+    soundEngine.stopAlarm();
+    isTestingAudio = false;
+    updateTestSoundBtn(false);
+  } else {
+    isTestingAudio = true;
+    updateTestSoundBtn(true);
+    soundEngine.playAlarm(() => {
+      isTestingAudio = false;
+      updateTestSoundBtn(false);
+    });
+  }
+}
+
+function updateTestSoundBtn(playing) {
+  if (DOM.testSoundText) DOM.testSoundText.textContent = playing ? 'Hentikan Nada' : 'Tes Putar Nada';
+  if (DOM.testSoundIcon) {
+    DOM.testSoundIcon.setAttribute('data-lucide', playing ? 'square' : 'play');
+    refreshLucideIcons();
+  }
+}
+
+// ==========================================================================
+// DAILY BRIEFING & REMINDER ENGINE
+// ==========================================================================
+
+function openDailyBriefingModal(playSound = false) {
+  const todayStr = formatDateToISO(new Date());
+  const todayTasks = state.tasks.filter(t => t.dueDate === todayStr);
+  const activeToday = todayTasks.filter(t => !t.completed);
+  const completedToday = todayTasks.filter(t => t.completed);
+
+  const now = new Date();
+  const options = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
+  if (DOM.briefingTodayDate) {
+    DOM.briefingTodayDate.textContent = `📅 ${now.toLocaleDateString('id-ID', options)}`;
+  }
+
+  if (DOM.briefingSummaryCount) {
+    DOM.briefingSummaryCount.textContent = activeToday.length > 0 
+      ? `Ada ${activeToday.length} tugas aktif hari ini (${completedToday.length} telah selesai).`
+      : `Tidak ada tugas tertunda untuk hari ini. Semua beres! ✨`;
+  }
+
+  if (DOM.briefingTasksContainer) {
+    if (todayTasks.length === 0) {
+      DOM.briefingTasksContainer.innerHTML = `
+        <div class="briefing-empty">
+          <p>🎉 Tidak ada jadwal tugas untuk hari ini!</p>
+          <p style="font-size:0.8rem;margin-top:0.3rem;">Nikmati hari Anda atau tambahkan tugas baru di workspace.</p>
+        </div>
+      `;
+    } else {
+      DOM.briefingTasksContainer.innerHTML = todayTasks.map(t => {
+        const cat = state.categories.find(c => c.id === t.category) || { name: 'Umum', color: '#6366f1' };
+        return `
+          <div class="briefing-task-card">
+            <div style="display:flex;align-items:center;gap:0.6rem;flex:1;min-width:0;">
+              <span>${t.completed ? '✅' : '⏳'}</span>
+              <div style="flex:1;min-width:0;">
+                <div class="briefing-task-title" style="${t.completed ? 'text-decoration:line-through;color:var(--text-muted);' : ''}">${escapeHtml(t.title)}</div>
+                <div style="font-size:0.75rem;color:var(--text-muted);display:flex;gap:0.4rem;align-items:center;margin-top:2px;">
+                  <span style="color:${cat.color};font-weight:600;">${cat.name}</span>
+                  ${t.description ? `<span>• ${escapeHtml(t.description.slice(0, 35))}</span>` : ''}
+                </div>
+              </div>
+            </div>
+            ${t.dueTime ? `<span class="briefing-task-time-pill"><i data-lucide="clock" style="width:11px;height:11px;margin-right:3px;"></i>${t.dueTime}</span>` : ''}
+          </div>
+        `;
+      }).join('');
+    }
+  }
+
+  DOM.modalDailyBriefing.style.display = 'flex';
+  refreshLucideIcons();
+
+  if (playSound) {
+    soundEngine.playAlarm();
+  }
+}
+
+const notifiedTaskMinutes = new Set();
+
+function checkTaskRemindersAndBriefing() {
+  const now = new Date();
+  const todayStr = formatDateToISO(now);
+  const hours = String(now.getHours()).padStart(2, '0');
+  const minutes = String(now.getMinutes()).padStart(2, '0');
+  const currentTimeStr = `${hours}:${minutes}`;
+  const minuteKey = `${todayStr}-${currentTimeStr}`;
+
+  // 1. Check Daily Briefing
+  if (state.soundConfig.briefingEnabled !== false && currentTimeStr === (state.soundConfig.briefingTime || '08:00')) {
+    if (state.lastBriefingDate !== todayStr) {
+      state.lastBriefingDate = todayStr;
+      localStorage.setItem(STORAGE_KEYS.BRIEFING_LAST_DATE, todayStr);
+      openDailyBriefingModal(true);
+
+      sendBrowserNotification('📋 Rekap Jadwal Hari Ini', {
+        body: 'Waktunya memeriksa jadwal hari ini! Buka AuraTasks untuk melihat tugas Anda.',
+        icon: '/favicon.svg'
+      });
+    }
+  }
+
+  // 2. Check Tasks Due at this exact minute
+  const dueNowTasks = state.tasks.filter(t => !t.completed && t.dueDate === todayStr && t.dueTime === currentTimeStr);
+  dueNowTasks.forEach(task => {
+    const taskKey = `${task.id}-${minuteKey}`;
+    if (!notifiedTaskMinutes.has(taskKey)) {
+      notifiedTaskMinutes.add(taskKey);
+      soundEngine.playAlarm();
+      showToast(`⏰ Pengingat: "${task.title.slice(0, 30)}" waktunya sekarang! 🔔`, 'warning');
+
+      sendBrowserNotification(`⏰ Pengingat Tugas: ${task.title}`, {
+        body: task.description || 'Waktunya menyelesaikan tugas ini sekarang!',
+        icon: '/favicon.svg'
+      });
+    }
+  });
+}
+
+function sendBrowserNotification(title, options) {
+  if ('Notification' in window && Notification.permission === 'granted') {
+    try {
+      new Notification(title, options);
+    } catch (e) {
+      console.warn('Browser notification error', e);
+    }
+  }
+}
+
+let reminderInterval = null;
+function startReminderEngine() {
+  if (reminderInterval) clearInterval(reminderInterval);
+  checkTaskRemindersAndBriefing();
+  reminderInterval = setInterval(checkTaskRemindersAndBriefing, 10000);
 }
 
 // ==========================================================================
