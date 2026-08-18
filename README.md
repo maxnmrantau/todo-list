@@ -1,3 +1,6 @@
+<img width="1167" height="900" alt="image" src="https://github.com/user-attachments/assets/6d552ca9-919d-4c84-b942-d41551b0a099" />
+
+
 # 🌟 AuraTasks — Smart & Aesthetic Todo List
 
 Aplikasi Todo List modern, elegan, dan kaya fitur yang dirancang dengan estetika *Glassmorphism*, analitik produktivitas interaktif, micro-animations, efek suara Web Audio, serta **100% siap dideploy ke [Vercel](https://vercel.com)**.
