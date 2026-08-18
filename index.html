@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="id" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AuraTasks — Smart & Aesthetic Todo List</title>
+  <meta name="description" content="Aplikasi Todo List modern, elegan, dan produktif dengan analitik, subtasks, filter cerdas, dan tema estetik. Siap deploy ke Vercel.">
+  <meta name="keywords" content="todo list, task manager, productivity, vercel todo, aesthetic todo">
+  <meta name="author" content="AuraTasks">
+  <meta name="theme-color" content="#0f172a">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="alternate icon" href="/favicon.svg">
+  <link rel="apple-touch-icon" href="/favicon.svg">
+
+  <!-- Open Graph / Meta -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="AuraTasks — Smart & Aesthetic Todo List">
+  <meta property="og:description" content="Kelola tugas dan tingkatkan produktivitas harian Anda dengan antarmuka modern dan interaktif.">
+
+  <!-- Google Fonts: Plus Jakarta Sans & Outfit -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <div class="app-background">
+    <div class="aurora-glow glow-1"></div>
+    <div class="aurora-glow glow-2"></div>
+    <div class="aurora-glow glow-3"></div>
+  </div>
+
+  <div class="app-container">
+    <!-- TOP NAVIGATION BAR -->
+    <header class="app-header">
+      <div class="header-brand">
+        <div class="brand-logo-wrap">
+          <div class="brand-logo-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+            </svg>
+          </div>
+          <div class="logo-aura-glow"></div>
+        </div>
+        <div class="brand-info">
+          <h1 class="brand-title">Aura<span class="gradient-text">Tasks</span></h1>
+          <p class="brand-subtitle" id="current-date-text">Memuat tanggal...</p>
+        </div>
+      </div>
+
+      <!-- Quick Actions / Theme / Sound -->
+      <div class="header-actions">
+        <div class="streak-badge" id="streak-badge" title="Produktivitas harian berturut-turut">
+          <span class="streak-icon">🔥</span>
+          <span class="streak-text"><span id="streak-count">1</span> Hari Streak</span>
+        </div>
+
+        <button class="icon-btn" id="btn-sound-toggle" title="Toggle Efek Suara" aria-label="Toggle Sound">
+          <i data-lucide="volume-2" id="sound-icon"></i>
+        </button>
+
+        <!-- Segmented Theme Switcher -->
+        <div class="theme-switcher-pill" id="theme-switcher-pill" role="radiogroup" aria-label="Pilih Tema">
+          <button type="button" class="theme-pill-btn active" data-theme-val="dark" title="Dark Slate">
+            <i data-lucide="moon" style="width:15px;height:15px;"></i>
+            <span class="theme-pill-text">Dark</span>
+          </button>
+          <button type="button" class="theme-pill-btn" data-theme-val="aurora" title="Aurora Cyber">
+            <i data-lucide="sparkles" style="width:15px;height:15px;"></i>
+            <span class="theme-pill-text">Aurora</span>
+          </button>
+          <button type="button" class="theme-pill-btn" data-theme-val="light" title="Clean Light">
+            <i data-lucide="sun" style="width:15px;height:15px;"></i>
+            <span class="theme-pill-text">Light</span>
+          </button>
+        </div>
+
+        <button class="icon-btn" id="btn-backup-menu" title="Backup & Restore Data" aria-label="Backup Restore">
+          <i data-lucide="database"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- PRODUCTIVITY HERO & STATS -->
+    <section class="stats-hero-section">
+      <div class="greeting-box">
+        <span class="greeting-pill" id="greeting-time-tag">✨ Semangat Pagi</span>
+        <h2 class="greeting-heading" id="greeting-title">Fokus pada apa yang penting hari ini</h2>
+        <p class="greeting-quote" id="motivational-quote">"Langkah kecil setiap hari menghasilkan pencapaian besar."</p>
+      </div>
+
+      <!-- Radial Progress Ring -->
+      <div class="progress-card">
+        <div class="radial-progress-box">
+          <svg class="radial-svg" width="110" height="110" viewBox="0 0 110 110">
+            <circle class="progress-track" cx="55" cy="55" r="44"></circle>
+            <circle class="progress-bar-fill" id="radial-bar" cx="55" cy="55" r="44" stroke-dasharray="276.46" stroke-dashoffset="276.46"></circle>
+          </svg>
+          <div class="radial-content">
+            <span class="radial-percent" id="radial-percent-num">0%</span>
+            <span class="radial-label">Selesai</span>
+          </div>
+        </div>
+        <div class="stats-mini-grid">
+          <div class="stat-item">
+            <span class="stat-val" id="stat-total">0</span>
+            <span class="stat-lbl">Total Tugas</span>
+          </div>
+          <div class="stat-item text-success">
+            <span class="stat-val" id="stat-completed">0</span>
+            <span class="stat-lbl">Selesai</span>
+          </div>
+          <div class="stat-item text-warning">
+            <span class="stat-val" id="stat-pending">0</span>
+            <span class="stat-lbl">Menunggu</span>
+          </div>
+          <div class="stat-item text-danger">
+            <span class="stat-val" id="stat-overdue">0</span>
+            <span class="stat-lbl">Terlambat</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- MAIN APP LAYOUT -->
+    <div class="main-layout">
+      <!-- SIDEBAR (CATEGORIES & FILTERS) -->
+      <aside class="sidebar-panel">
+        <div class="sidebar-header">
+          <h3 class="sidebar-title">Kategori</h3>
+          <button class="sidebar-add-cat-btn" id="btn-add-category" title="Tambah Kategori Baru">
+            <i data-lucide="plus"></i>
+          </button>
+        </div>
+
+        <nav class="category-nav" id="category-nav-list">
+          <!-- Populated by JS -->
+        </nav>
+
+        <div class="sidebar-divider"></div>
+
+        <div class="sidebar-header">
+          <h3 class="sidebar-title">Prioritas</h3>
+        </div>
+        <nav class="priority-nav">
+          <button class="priority-filter-btn active" data-priority="all">
+            <span class="priority-pill pill-all"></span> Semua Prioritas
+          </button>
+          <button class="priority-filter-btn" data-priority="urgent">
+            <span class="priority-pill pill-urgent"></span> Urgent 🔥
+          </button>
+          <button class="priority-filter-btn" data-priority="high">
+            <span class="priority-pill pill-high"></span> Tinggi 🔴
+          </button>
+          <button class="priority-filter-btn" data-priority="medium">
+            <span class="priority-pill pill-medium"></span> Sedang 🟡
+          </button>
+          <button class="priority-filter-btn" data-priority="low">
+            <span class="priority-pill pill-low"></span> Rendah 🟢
+          </button>
+        </nav>
+
+        <div class="sidebar-pro-tip">
+          <div class="pro-tip-icon">💡</div>
+          <div class="pro-tip-text">
+            <strong>Tips:</strong> Tekan <kbd>Enter</kbd> untuk cepat menambah tugas, atau <kbd>/</kbd> untuk mencari tugas.
+          </div>
+        </div>
+      </aside>
+
+      <!-- MAIN CONTENT -->
+      <main class="tasks-workspace">
+        <!-- QUICK ADD TASK CARD -->
+        <div class="quick-add-card">
+          <form id="add-task-form" autocomplete="off">
+            <div class="add-input-row">
+              <div class="add-icon-indicator">
+                <i data-lucide="plus-circle"></i>
+              </div>
+              <input 
+                type="text" 
+                id="task-input-title" 
+                class="main-task-input" 
+                placeholder="Apa yang ingin Anda selesaikan selanjutnya?..." 
+                required
+              >
+              <button type="button" class="btn-expand-details" id="btn-toggle-task-details" title="Tambah opsi detail">
+                <i data-lucide="sliders-horizontal"></i>
+                <span>Detail</span>
+              </button>
+              <button type="submit" class="btn-submit-task" id="btn-submit-task">
+                <span>Tambah</span>
+                <i data-lucide="arrow-right"></i>
+              </button>
+            </div>
+
+            <!-- EXPANDABLE DETAILS DRAWER -->
+            <div class="task-details-drawer" id="task-details-drawer">
+              <div class="details-grid">
+                <div class="form-group">
+                  <label for="task-input-category"><i data-lucide="folder"></i> Kategori</label>
+                  <select id="task-input-category" class="custom-select">
+                    <!-- Populated by JS -->
+                  </select>
+                </div>
+
+                <div class="form-group">
+                  <label for="task-input-priority"><i data-lucide="flag"></i> Prioritas</label>
+                  <select id="task-input-priority" class="custom-select">
+                    <option value="low">🟢 Rendah</option>
+                    <option value="medium" selected>🟡 Sedang</option>
+                    <option value="high">🔴 Tinggi</option>
+                    <option value="urgent">🔥 Urgent</option>
+                  </select>
+                </div>
+
+                <div class="form-group">
+                  <label for="task-input-due"><i data-lucide="calendar"></i> Tenggat Waktu</label>
+                  <input type="date" id="task-input-due" class="custom-date-input">
+                </div>
+              </div>
+
+              <div class="form-group mt-3">
+                <label for="task-input-desc"><i data-lucide="align-left"></i> Catatan / Deskripsi Tambahan</label>
+                <textarea id="task-input-desc" class="custom-textarea" rows="2" placeholder="Tuliskan catatan detail atau tautan referensi..."></textarea>
+              </div>
+
+              <!-- Quick Subtasks in Add Form -->
+              <div class="subtask-builder-box">
+                <label><i data-lucide="check-square"></i> Subtasks / Checklist (Opsional)</label>
+                <div class="subtask-input-row">
+                  <input type="text" id="draft-subtask-input" class="subtask-quick-input" placeholder="Tambah langkah pekerjaan...">
+                  <button type="button" class="btn-secondary-sm" id="btn-add-draft-subtask">
+                    <i data-lucide="plus"></i> Tambah Subtask
+                  </button>
+                </div>
+                <div class="draft-subtasks-chips" id="draft-subtasks-container"></div>
+              </div>
+            </div>
+          </form>
+        </div>
+
+        <!-- FILTER TABS, SEARCH & BULK ACTIONS -->
+        <div class="workspace-controls-bar">
+          <!-- Filter Tabs -->
+          <div class="filter-tabs">
+            <button class="filter-tab active" data-status="all">
+              Semua <span class="tab-badge" id="badge-all">0</span>
+            </button>
+            <button class="filter-tab" data-status="active">
+              Aktif <span class="tab-badge" id="badge-active">0</span>
+            </button>
+            <button class="filter-tab" data-status="today">
+              Hari Ini <span class="tab-badge" id="badge-today">0</span>
+            </button>
+            <button class="filter-tab" data-status="completed">
+              Selesai <span class="tab-badge" id="badge-completed">0</span>
+            </button>
+          </div>
+
+          <!-- Search & Controls -->
+          <div class="right-controls">
+            <div class="search-input-wrapper">
+              <i data-lucide="search" class="search-icon"></i>
+              <input type="text" id="search-input" placeholder="Cari tugas... (/)" autocomplete="off">
+              <button class="search-clear-btn" id="btn-clear-search" style="display:none;">
+                <i data-lucide="x"></i>
+              </button>
+            </div>
+
+            <!-- Sort dropdown -->
+            <div class="dropdown-wrapper">
+              <select id="sort-select" class="sort-select" title="Urutkan Tugas">
+                <option value="created-desc">📅 Terbaru Dibuat</option>
+                <option value="created-asc">📅 Terlama Dibuat</option>
+                <option value="due-asc">⏰ Tenggat Terdekat</option>
+                <option value="priority-desc">🔥 Prioritas Tertinggi</option>
+                <option value="alpha-asc">🔤 Abjad A - Z</option>
+              </select>
+            </div>
+
+            <!-- Bulk Actions Menu -->
+            <div class="dropdown-wrapper">
+              <button class="icon-btn-secondary" id="btn-bulk-menu" title="Aksi Massal">
+                <i data-lucide="more-horizontal"></i>
+              </button>
+              <div class="bulk-menu" id="bulk-menu">
+                <button class="bulk-opt-btn" id="btn-bulk-complete-all">
+                  <i data-lucide="check-check"></i> Selesaikan Semua
+                </button>
+                <button class="bulk-opt-btn" id="btn-bulk-clear-completed">
+                  <i data-lucide="trash"></i> Bersihkan yang Selesai
+                </button>
+                <button class="bulk-opt-btn text-danger" id="btn-bulk-reset-all">
+                  <i data-lucide="alert-triangle"></i> Reset Semua Tugas
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TASK LIST CONTAINER -->
+        <div class="task-list-wrapper">
+          <div class="tasks-list" id="tasks-container">
+            <!-- Dynamic Tasks Rendered Here -->
+          </div>
+
+          <!-- Empty State -->
+          <div class="empty-state-card" id="empty-state" style="display: none;">
+            <div class="empty-illustration">
+              <div class="empty-icon-circle">
+                <i data-lucide="sparkles"></i>
+              </div>
+            </div>
+            <h3 class="empty-title" id="empty-title">Semua Tugas Selesai!</h3>
+            <p class="empty-desc" id="empty-desc">Tidak ada tugas yang ditemukan dalam filter ini. Mulai tambahkan tugas baru di atas!</p>
+            <button class="btn-primary" id="btn-empty-add-task">
+              <i data-lucide="plus"></i> Tambah Tugas Sekarang
+            </button>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- MODAL: EDIT TASK -->
+  <div class="modal-backdrop" id="modal-edit-task" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title"><i data-lucide="edit-3"></i> Edit Tugas</h3>
+        <button class="modal-close-btn" id="btn-close-edit-modal">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+      <form id="edit-task-form" class="modal-body">
+        <input type="hidden" id="edit-task-id">
+        <div class="form-group">
+          <label for="edit-task-title">Judul Tugas</label>
+          <input type="text" id="edit-task-title" class="custom-input" required>
+        </div>
+
+        <div class="details-grid">
+          <div class="form-group">
+            <label for="edit-task-category">Kategori</label>
+            <select id="edit-task-category" class="custom-select">
+              <!-- Populated by JS -->
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="edit-task-priority">Prioritas</label>
+            <select id="edit-task-priority" class="custom-select">
+              <option value="low">🟢 Rendah</option>
+              <option value="medium">🟡 Sedang</option>
+              <option value="high">🔴 Tinggi</option>
+              <option value="urgent">🔥 Urgent</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="edit-task-due">Tenggat Waktu</label>
+            <input type="date" id="edit-task-due" class="custom-date-input">
+          </div>
+        </div>
+
+        <div class="form-group mt-3">
+          <label for="edit-task-desc">Catatan</label>
+          <textarea id="edit-task-desc" class="custom-textarea" rows="3" placeholder="Tuliskan catatan detail..."></textarea>
+        </div>
+
+        <!-- Subtasks Editor in Modal -->
+        <div class="form-group mt-3">
+          <label>Daftar Subtasks</label>
+          <div class="subtask-input-row">
+            <input type="text" id="edit-subtask-input" class="subtask-quick-input" placeholder="Tambah item checklist...">
+            <button type="button" class="btn-secondary-sm" id="btn-add-edit-subtask">
+              <i data-lucide="plus"></i> Tambah
+            </button>
+          </div>
+          <div class="modal-subtask-list" id="modal-subtasks-container">
+            <!-- Dynamic checklist items -->
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" id="btn-cancel-edit-modal">Batal</button>
+          <button type="submit" class="btn-primary"><i data-lucide="save"></i> Simpan Perubahan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: ADD CATEGORY -->
+  <div class="modal-backdrop" id="modal-category" style="display: none;">
+    <div class="modal-card modal-sm">
+      <div class="modal-header">
+        <h3 class="modal-title"><i data-lucide="folder-plus"></i> Kategori Baru</h3>
+        <button class="modal-close-btn" id="btn-close-cat-modal">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+      <form id="add-category-form" class="modal-body">
+        <div class="form-group">
+          <label for="cat-name-input">Nama Kategori</label>
+          <input type="text" id="cat-name-input" class="custom-input" placeholder="contoh: Desain, Keuangan, Skripsi" required>
+        </div>
+
+        <div class="form-group">
+          <label>Pilih Warna Tag</label>
+          <div class="color-picker-palette" id="cat-color-palette">
+            <button type="button" class="color-swatch active" data-color="#6366f1" style="background:#6366f1"></button>
+            <button type="button" class="color-swatch" data-color="#ec4899" style="background:#ec4899"></button>
+            <button type="button" class="color-swatch" data-color="#3b82f6" style="background:#3b82f6"></button>
+            <button type="button" class="color-swatch" data-color="#10b981" style="background:#10b981"></button>
+            <button type="button" class="color-swatch" data-color="#f59e0b" style="background:#f59e0b"></button>
+            <button type="button" class="color-swatch" data-color="#8b5cf6" style="background:#8b5cf6"></button>
+            <button type="button" class="color-swatch" data-color="#06b6d4" style="background:#06b6d4"></button>
+            <button type="button" class="color-swatch" data-color="#ef4444" style="background:#ef4444"></button>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" id="btn-cancel-cat-modal">Batal</button>
+          <button type="submit" class="btn-primary"><i data-lucide="check"></i> Simpan Kategori</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: BACKUP & RESTORE DATA -->
+  <div class="modal-backdrop" id="modal-backup" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title"><i data-lucide="database"></i> Backup & Sinkronisasi Data</h3>
+        <button class="modal-close-btn" id="btn-close-backup-modal">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p class="backup-intro">
+          Semua data tugas dan kategori Anda disimpan secara aman di browser lokal (LocalStorage). Anda dapat mengekspor atau mengimpor data kapan saja untuk cadangan atau berpindah perangkat.
+        </p>
+
+        <div class="backup-actions-grid">
+          <div class="backup-card">
+            <div class="backup-card-icon"><i data-lucide="download"></i></div>
+            <h4>Export Data (JSON)</h4>
+            <p>Unduh seluruh data tugas dan kategori dalam format file JSON.</p>
+            <button class="btn-secondary-sm" id="btn-export-json">
+              <i data-lucide="download"></i> Download JSON
+            </button>
+          </div>
+
+          <div class="backup-card">
+            <div class="backup-card-icon"><i data-lucide="file-spreadsheet"></i></div>
+            <h4>Export ke CSV</h4>
+            <p>Ekspor daftar tugas untuk dibuka di Microsoft Excel atau Google Sheets.</p>
+            <button class="btn-secondary-sm" id="btn-export-csv">
+              <i data-lucide="file-spreadsheet"></i> Download CSV
+            </button>
+          </div>
+
+          <div class="backup-card">
+            <div class="backup-card-icon"><i data-lucide="upload"></i></div>
+            <h4>Import Data</h4>
+            <p>Muat ulang file JSON backup yang pernah Anda unduh sebelumnya.</p>
+            <input type="file" id="import-file-input" accept=".json" style="display:none;">
+            <button class="btn-primary-sm" id="btn-trigger-import">
+              <i data-lucide="upload"></i> Pilih File JSON
+            </button>
+          </div>
+
+          <div class="backup-card">
+            <div class="backup-card-icon"><i data-lucide="refresh-cw"></i></div>
+            <h4>Muat Contoh Data</h4>
+            <p>Isi ulang tugas contoh bawaan jika Anda ingin melihat demonstrasi fitur.</p>
+            <button class="btn-secondary-sm" id="btn-load-sample-data">
+              <i data-lucide="sparkles"></i> Muat Sampel
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" id="btn-cancel-backup-modal">Tutup</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFICATION CONTAINER -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- Lucide icons & Canvas Confetti CDN fallback/modules -->
+  <script type="module" src="./app.js"></script>
+</body>
+</html>

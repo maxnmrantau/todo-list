@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="100%" height="100%">
+  <defs>
+    <!-- Background Gradient -->
+    <linearGradient id="auraGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6366f1" />
+      <stop offset="50%" stop-color="#a855f7" />
+      <stop offset="100%" stop-color="#ec4899" />
+    </linearGradient>
+
+    <!-- Subtle Inner Shadow / Gloss -->
+    <linearGradient id="glossGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.3" />
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0" />
+    </linearGradient>
+
+    <!-- Drop Shadow Filter -->
+    <filter id="shadowFilter" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="6" stdDeviation="6" flood-color="#000000" flood-opacity="0.3" />
+    </filter>
+  </defs>
+
+  <!-- Background Squircle -->
+  <rect x="8" y="8" width="112" height="112" rx="30" fill="url(#auraGrad)" filter="url(#shadowFilter)" />
+
+  <!-- Glossy Overlay -->
+  <rect x="8" y="8" width="112" height="56" rx="30" fill="url(#glossGrad)" opacity="0.6" />
+
+  <!-- Inner Icon: Modern Glowing Task Checkmark & Sparkle -->
+  <!-- Task List Lines -->
+  <rect x="30" y="38" width="28" height="7" rx="3.5" fill="#ffffff" opacity="0.75" />
+  <rect x="30" y="56" width="42" height="7" rx="3.5" fill="#ffffff" opacity="0.75" />
+  <rect x="30" y="74" width="20" height="7" rx="3.5" fill="#ffffff" opacity="0.75" />
+
+  <!-- Bold Modern Checkmark -->
+  <path d="M52 82 L68 98 L100 52" fill="none" stroke="#ffffff" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" />
+
+  <!-- Star / Sparkle Accent -->
+  <path d="M96 22 Q96 32 106 32 Q96 32 96 42 Q96 32 86 32 Q96 32 96 22 Z" fill="#ffffff" opacity="0.9" />
+</svg>
