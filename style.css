@@ -845,8 +845,73 @@ html, body {
 
 .details-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 1rem;
+}
+
+/* Custom Days Selector for Recurring Tasks */
+.custom-days-wrapper {
+  margin-top: 0.85rem;
+  padding: 0.85rem 1rem;
+  background: rgba(99, 102, 241, 0.08);
+  border: 1px dashed rgba(99, 102, 241, 0.35);
+  border-radius: var(--radius-md);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  animation: fadeInDown 0.25s ease-out;
+}
+
+.custom-days-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.day-selector-grid {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.day-chip-btn {
+  flex: 1;
+  min-width: 42px;
+  padding: 0.45rem 0.25rem;
+  text-align: center;
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: 0.825rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.day-chip-btn:hover {
+  background: rgba(99, 102, 241, 0.15);
+  border-color: var(--accent-primary);
+  color: var(--text-primary);
+  transform: translateY(-1px);
+}
+
+.day-chip-btn.active {
+  background: var(--accent-gradient);
+  border-color: transparent;
+  color: #ffffff;
+  font-weight: 700;
+  box-shadow: 0 0 12px var(--accent-glow);
+  transform: translateY(-1px);
+}
+
+.custom-days-hint {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-style: italic;
 }
 
 .form-group {
@@ -1359,6 +1424,22 @@ html, body {
   border-color: rgba(239, 68, 68, 0.5);
   color: #f87171;
   animation: pulseWarning 2s infinite ease-in-out;
+}
+
+.meta-pill-recurring {
+  background: rgba(168, 85, 247, 0.15);
+  border: 1px solid rgba(168, 85, 247, 0.35);
+  color: #c084fc;
+}
+
+.meta-pill-recurring i {
+  color: #a855f7;
+}
+
+[data-theme="light"] .meta-pill-recurring {
+  background: rgba(168, 85, 247, 0.1);
+  border-color: rgba(168, 85, 247, 0.3);
+  color: #9333ea;
 }
 
 @keyframes pulseWarning {

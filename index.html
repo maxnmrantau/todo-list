@@ -221,6 +221,33 @@
                   <label for="task-input-due"><i data-lucide="calendar"></i> Tenggat Waktu</label>
                   <input type="date" id="task-input-due" class="custom-date-input">
                 </div>
+
+                <div class="form-group">
+                  <label for="task-input-recurring"><i data-lucide="repeat"></i> Pengulangan</label>
+                  <select id="task-input-recurring" class="custom-select">
+                    <option value="none" selected>❌ Tidak Berulang</option>
+                    <option value="daily">🔁 Setiap Hari</option>
+                    <option value="workdays">💼 Hari Kerja (Senin - Jumat)</option>
+                    <option value="custom">📅 Hari Tertentu (Pilih Hari)</option>
+                    <option value="weekly">🗓️ Setiap Minggu</option>
+                    <option value="monthly">📆 Setiap Bulan</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Custom Days Selection for Quick Add (Only shown if custom is selected) -->
+              <div class="custom-days-wrapper" id="task-input-days-container" style="display: none;">
+                <label class="custom-days-label"><i data-lucide="calendar"></i> Pilih Hari Pengerjaan:</label>
+                <div class="day-selector-grid" id="task-add-day-selector">
+                  <button type="button" class="day-chip-btn" data-day="1">Sen</button>
+                  <button type="button" class="day-chip-btn" data-day="2">Sel</button>
+                  <button type="button" class="day-chip-btn" data-day="3">Rab</button>
+                  <button type="button" class="day-chip-btn" data-day="4">Kam</button>
+                  <button type="button" class="day-chip-btn" data-day="5">Jum</button>
+                  <button type="button" class="day-chip-btn" data-day="6">Sab</button>
+                  <button type="button" class="day-chip-btn" data-day="0">Min</button>
+                </div>
+                <span class="custom-days-hint">Tugas akan otomatis berulang pada hari-hari yang Anda pilih</span>
               </div>
 
               <div class="form-group mt-3">
@@ -255,6 +282,9 @@
             </button>
             <button class="filter-tab" data-status="today">
               Hari Ini <span class="tab-badge" id="badge-today">0</span>
+            </button>
+            <button class="filter-tab" data-status="recurring">
+              🔁 Berulang <span class="tab-badge" id="badge-recurring">0</span>
             </button>
             <button class="filter-tab" data-status="completed">
               Selesai <span class="tab-badge" id="badge-completed">0</span>
@@ -344,13 +374,13 @@
 
         <div class="details-grid">
           <div class="form-group">
-            <label for="edit-task-category">Kategori</label>
+            <label for="edit-task-category"><i data-lucide="folder"></i> Kategori</label>
             <select id="edit-task-category" class="custom-select">
               <!-- Populated by JS -->
             </select>
           </div>
           <div class="form-group">
-            <label for="edit-task-priority">Prioritas</label>
+            <label for="edit-task-priority"><i data-lucide="flag"></i> Prioritas</label>
             <select id="edit-task-priority" class="custom-select">
               <option value="low">🟢 Rendah</option>
               <option value="medium">🟡 Sedang</option>
@@ -359,9 +389,35 @@
             </select>
           </div>
           <div class="form-group">
-            <label for="edit-task-due">Tenggat Waktu</label>
+            <label for="edit-task-due"><i data-lucide="calendar"></i> Tenggat Waktu</label>
             <input type="date" id="edit-task-due" class="custom-date-input">
           </div>
+          <div class="form-group">
+            <label for="edit-task-recurring"><i data-lucide="repeat"></i> Pengulangan</label>
+            <select id="edit-task-recurring" class="custom-select">
+              <option value="none">❌ Tidak Berulang</option>
+              <option value="daily">🔁 Setiap Hari</option>
+              <option value="workdays">💼 Hari Kerja (Senin - Jumat)</option>
+              <option value="custom">📅 Hari Tertentu (Pilih Hari)</option>
+              <option value="weekly">🗓️ Setiap Minggu</option>
+              <option value="monthly">📆 Setiap Bulan</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Custom Days Selection for Edit Modal -->
+        <div class="custom-days-wrapper" id="edit-task-days-container" style="display: none;">
+          <label class="custom-days-label"><i data-lucide="calendar"></i> Pilih Hari Pengerjaan:</label>
+          <div class="day-selector-grid" id="edit-task-day-selector">
+            <button type="button" class="day-chip-btn" data-day="1">Sen</button>
+            <button type="button" class="day-chip-btn" data-day="2">Sel</button>
+            <button type="button" class="day-chip-btn" data-day="3">Rab</button>
+            <button type="button" class="day-chip-btn" data-day="4">Kam</button>
+            <button type="button" class="day-chip-btn" data-day="5">Jum</button>
+            <button type="button" class="day-chip-btn" data-day="6">Sab</button>
+            <button type="button" class="day-chip-btn" data-day="0">Min</button>
+          </div>
+          <span class="custom-days-hint">Tugas akan otomatis berulang pada hari-hari yang Anda pilih</span>
         </div>
 
         <div class="form-group mt-3">

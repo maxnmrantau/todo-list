@@ -38,7 +38,8 @@ import {
   BookOpen, 
   DollarSign, 
   Heart, 
-  Tag 
+  Tag,
+  Repeat 
 } from 'lucide';
 import confetti from 'canvas-confetti';
 
@@ -81,7 +82,8 @@ const appIcons = {
   BookOpen, 
   DollarSign, 
   Heart, 
-  Tag 
+  Tag,
+  Repeat
 };
 
 // ==========================================================================
@@ -158,8 +160,25 @@ const SAMPLE_TASKS = [
     dueDate: new Date().toISOString().split('T')[0],
     completed: false,
     pinned: false,
+    recurring: { type: 'daily', days: [] },
     subtasks: [],
     createdAt: Date.now() - 1000 * 60 * 60 * 20
+  },
+  {
+    id: 'sample-5',
+    title: '📑 Evaluasi Rutin & Perencanaan Sprint',
+    description: 'Review to-do mingguan dan periksa checklist prioritas.',
+    category: 'work',
+    priority: 'medium',
+    dueDate: new Date().toISOString().split('T')[0],
+    completed: false,
+    pinned: false,
+    recurring: { type: 'custom', days: [1, 4] },
+    subtasks: [
+      { id: 'sub-6', text: 'Rekap to-do terselesaikan', completed: true },
+      { id: 'sub-7', text: 'Identifikasi blocker & improvement', completed: false }
+    ],
+    createdAt: Date.now() - 1000 * 60 * 60 * 24
   }
 ];
 
@@ -380,6 +399,9 @@ const DOM = {
   taskInputCategory: document.getElementById('task-input-category'),
   taskInputPriority: document.getElementById('task-input-priority'),
   taskInputDue: document.getElementById('task-input-due'),
+  taskInputRecurring: document.getElementById('task-input-recurring'),
+  taskInputDaysContainer: document.getElementById('task-input-days-container'),
+  taskAddDaySelector: document.getElementById('task-add-day-selector'),
   taskInputDesc: document.getElementById('task-input-desc'),
   draftSubtaskInput: document.getElementById('draft-subtask-input'),
   btnAddDraftSubtask: document.getElementById('btn-add-draft-subtask'),
@@ -390,6 +412,7 @@ const DOM = {
   badgeAll: document.getElementById('badge-all'),
   badgeActive: document.getElementById('badge-active'),
   badgeToday: document.getElementById('badge-today'),
+  badgeRecurring: document.getElementById('badge-recurring'),
   badgeCompleted: document.getElementById('badge-completed'),
   searchInput: document.getElementById('search-input'),
   btnClearSearch: document.getElementById('btn-clear-search'),
@@ -413,6 +436,9 @@ const DOM = {
   editTaskCategory: document.getElementById('edit-task-category'),
   editTaskPriority: document.getElementById('edit-task-priority'),
   editTaskDue: document.getElementById('edit-task-due'),
+  editTaskRecurring: document.getElementById('edit-task-recurring'),
+  editTaskDaysContainer: document.getElementById('edit-task-days-container'),
+  editTaskDaySelector: document.getElementById('edit-task-day-selector'),
   editTaskDesc: document.getElementById('edit-task-desc'),
   editSubtaskInput: document.getElementById('edit-subtask-input'),
   btnAddEditSubtask: document.getElementById('btn-add-edit-subtask'),
@@ -445,6 +471,113 @@ const DOM = {
 // State for Modal Subtasks during Edit
 let currentModalSubtasks = [];
 
+// Recurring Days Selection State
+let draftRecurringDays = [1, 2, 3, 4, 5]; // Default Sen - Jum
+let modalRecurringDays = [1, 2, 3, 4, 5];
+
+function formatDateToISO(d) {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function calculateNextRecurringDate(baseDateStr, recurring) {
+  if (!recurring || !recurring.type || recurring.type === 'none') return '';
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  let base = new Date();
+  if (baseDateStr) {
+    const parts = baseDateStr.split('-');
+    if (parts.length === 3) {
+      base = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+    }
+  }
+  base.setHours(0, 0, 0, 0);
+
+  let start = new Date(Math.max(base.getTime(), today.getTime()));
+
+  switch (recurring.type) {
+    case 'daily': {
+      start.setDate(start.getDate() + 1);
+      return formatDateToISO(start);
+    }
+    case 'workdays': {
+      start.setDate(start.getDate() + 1);
+      while (start.getDay() === 0 || start.getDay() === 6) {
+        start.setDate(start.getDate() + 1);
+      }
+      return formatDateToISO(start);
+    }
+    case 'weekly': {
+      start.setDate(start.getDate() + 7);
+      return formatDateToISO(start);
+    }
+    case 'monthly': {
+      start.setMonth(start.getMonth() + 1);
+      return formatDateToISO(start);
+    }
+    case 'custom': {
+      const rawDays = Array.isArray(recurring.days) && recurring.days.length > 0 ? recurring.days : [1, 2, 3, 4, 5];
+      const days = rawDays.map(Number);
+      for (let i = 1; i <= 14; i++) {
+        const candidate = new Date(start);
+        candidate.setDate(candidate.getDate() + i);
+        if (days.includes(candidate.getDay())) {
+          return formatDateToISO(candidate);
+        }
+      }
+      start.setDate(start.getDate() + 1);
+      return formatDateToISO(start);
+    }
+    default:
+      return '';
+  }
+}
+
+function formatRecurringLabel(recurring) {
+  if (!recurring || !recurring.type || recurring.type === 'none') return '';
+  const dayNames = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
+  switch (recurring.type) {
+    case 'daily':
+      return 'Setiap Hari';
+    case 'workdays':
+      return 'Hari Kerja (Sen-Jum)';
+    case 'weekly':
+      return 'Setiap Minggu';
+    case 'monthly':
+      return 'Setiap Bulan';
+    case 'custom': {
+      const days = (recurring.days || []).map(Number);
+      if (days.length === 7) return 'Setiap Hari';
+      if (days.length === 5 && !days.includes(0) && !days.includes(6)) return 'Hari Kerja (Sen-Jum)';
+      if (days.length === 2 && days.includes(0) && days.includes(6)) return 'Akhir Pekan (Sab-Min)';
+      if (days.length === 0) return 'Hari Tertentu';
+      const sortedDays = [...days].sort((a, b) => (a === 0 ? 7 : a) - (b === 0 ? 7 : b));
+      const names = sortedDays.map(d => dayNames[d]);
+      return `Tiap ${names.join(', ')}`;
+    }
+    default:
+      return '';
+  }
+}
+
+function updateDaySelectorChips(container, activeDays) {
+  if (!container) return;
+  const numDays = activeDays.map(Number);
+  const chips = container.querySelectorAll('.day-chip-btn');
+  chips.forEach(chip => {
+    const day = parseInt(chip.getAttribute('data-day'), 10);
+    if (numDays.includes(day)) {
+      chip.classList.add('active');
+    } else {
+      chip.classList.remove('active');
+    }
+  });
+}
+
 // ==========================================================================
 // RENDER & UI UPDATE FUNCTIONS
 // ==========================================================================
@@ -455,6 +588,7 @@ function initApp() {
   renderDateAndGreeting();
   renderCategorySelects();
   renderCategorySidebar();
+  updateDaySelectorChips(DOM.taskAddDaySelector, draftRecurringDays);
   renderTasks();
   updateStats();
   initEventListeners();
@@ -577,10 +711,12 @@ function updateStats() {
   // Badges in filter tabs
   const activeCount = state.tasks.filter(t => !t.completed).length;
   const todayCount = state.tasks.filter(t => t.dueDate === todayStr).length;
+  const recurringCount = state.tasks.filter(t => t.recurring && t.recurring.type && t.recurring.type !== 'none').length;
 
   DOM.badgeAll.textContent = total;
   DOM.badgeActive.textContent = activeCount;
   DOM.badgeToday.textContent = todayCount;
+  if (DOM.badgeRecurring) DOM.badgeRecurring.textContent = recurringCount;
   DOM.badgeCompleted.textContent = completed;
 
   // Radial Progress calculation
@@ -601,6 +737,7 @@ function getFilteredAndSortedTasks() {
     if (state.statusFilter === 'active' && task.completed) return false;
     if (state.statusFilter === 'completed' && !task.completed) return false;
     if (state.statusFilter === 'today' && task.dueDate !== todayStr) return false;
+    if (state.statusFilter === 'recurring' && (!task.recurring || !task.recurring.type || task.recurring.type === 'none')) return false;
 
     // 2. Category Filter
     if (state.categoryFilter !== 'all' && task.category !== state.categoryFilter) return false;
@@ -696,6 +833,20 @@ function createTaskCardHtml(task) {
     low: '🟢 Rendah'
   };
 
+  // Recurring Label & Pill
+  let recurringHtml = '';
+  if (task.recurring && task.recurring.type && task.recurring.type !== 'none') {
+    const recurLabel = formatRecurringLabel(task.recurring);
+    if (recurLabel) {
+      recurringHtml = `
+        <span class="meta-pill meta-pill-recurring" title="Tugas Rutin: ${escapeHtml(recurLabel)}">
+          <i data-lucide="repeat" style="width:12px;height:12px;"></i>
+          <span>${escapeHtml(recurLabel)}</span>
+        </span>
+      `;
+    }
+  }
+
   // Subtasks progress & list
   let subtasksHtml = '';
   if (task.subtasks && task.subtasks.length > 0) {
@@ -756,6 +907,7 @@ function createTaskCardHtml(task) {
               <span>${priorityLabels[task.priority] || task.priority}</span>
             </span>
 
+            ${recurringHtml}
             ${dueHtml}
           </div>
 
@@ -825,6 +977,14 @@ function handleAddTask(e) {
   const title = DOM.taskInputTitle.value.trim();
   if (!title) return;
 
+  const recurType = DOM.taskInputRecurring ? DOM.taskInputRecurring.value : 'none';
+  let recurDays = [];
+  if (recurType === 'custom') {
+    recurDays = [...draftRecurringDays];
+  } else if (recurType === 'workdays') {
+    recurDays = [1, 2, 3, 4, 5];
+  }
+
   const newTask = {
     id: 'task-' + Date.now() + '-' + Math.random().toString(36).substr(2, 5),
     title: title,
@@ -832,6 +992,10 @@ function handleAddTask(e) {
     category: DOM.taskInputCategory.value || 'work',
     priority: DOM.taskInputPriority.value || 'medium',
     dueDate: DOM.taskInputDue.value || '',
+    recurring: {
+      type: recurType,
+      days: recurDays
+    },
     completed: false,
     pinned: false,
     subtasks: [...state.draftSubtasks],
@@ -845,6 +1009,10 @@ function handleAddTask(e) {
   DOM.addTaskForm.reset();
   state.draftSubtasks = [];
   renderDraftSubtasks();
+  if (DOM.taskInputRecurring) DOM.taskInputRecurring.value = 'none';
+  if (DOM.taskInputDaysContainer) DOM.taskInputDaysContainer.style.display = 'none';
+  draftRecurringDays = [1, 2, 3, 4, 5];
+  updateDaySelectorChips(DOM.taskAddDaySelector, draftRecurringDays);
   DOM.taskDetailsDrawer.classList.remove('open');
   DOM.btnToggleTaskDetails.classList.remove('active');
 
@@ -859,6 +1027,36 @@ function handleAddTask(e) {
 function handleToggleComplete(taskId) {
   const task = state.tasks.find(t => t.id === taskId);
   if (!task) return;
+
+  // If this is a recurring task and currently incomplete, reschedule to next occurrence on complete
+  if (task.recurring && task.recurring.type && task.recurring.type !== 'none') {
+    if (!task.completed) {
+      soundEngine.playComplete();
+
+      confetti({
+        particleCount: 55,
+        spread: 65,
+        origin: { y: 0.8 },
+        colors: ['#6366f1', '#a855f7', '#ec4899', '#10b981', '#f59e0b']
+      });
+
+      const nextDue = calculateNextRecurringDate(task.dueDate || new Date().toISOString().split('T')[0], task.recurring);
+      task.dueDate = nextDue;
+      task.completed = false;
+      if (task.subtasks) {
+        task.subtasks.forEach(s => s.completed = false);
+      }
+      state.saveTasks();
+
+      const nextLabel = formatShortDate(nextDue) || 'jadwal berikutnya';
+      showToast(`🎉 Tugas rutin selesai! Dijadwalkan ulang: ${nextLabel} 🔁`, 'success');
+
+      renderTasks();
+      renderCategorySidebar();
+      updateStats();
+      return;
+    }
+  }
 
   task.completed = !task.completed;
   state.saveTasks();
@@ -985,6 +1183,18 @@ function openEditModal(taskId) {
   DOM.editTaskDue.value = task.dueDate || '';
   DOM.editTaskDesc.value = task.description || '';
 
+  if (DOM.editTaskRecurring) {
+    const recurType = task.recurring?.type || 'none';
+    DOM.editTaskRecurring.value = recurType;
+    modalRecurringDays = Array.isArray(task.recurring?.days) && task.recurring.days.length > 0 
+      ? task.recurring.days.map(Number) 
+      : [1, 2, 3, 4, 5];
+    if (DOM.editTaskDaysContainer) {
+      DOM.editTaskDaysContainer.style.display = recurType === 'custom' ? 'flex' : 'none';
+    }
+    updateDaySelectorChips(DOM.editTaskDaySelector, modalRecurringDays);
+  }
+
   currentModalSubtasks = JSON.parse(JSON.stringify(task.subtasks || []));
   renderModalSubtasks();
 
@@ -1026,10 +1236,15 @@ function handleSaveEditTask(e) {
   const task = state.tasks.find(t => t.id === taskId);
   if (!task) return;
 
+  const editRecurType = DOM.editTaskRecurring ? DOM.editTaskRecurring.value : 'none';
   task.title = DOM.editTaskTitle.value.trim();
   task.category = DOM.editTaskCategory.value;
   task.priority = DOM.editTaskPriority.value;
   task.dueDate = DOM.editTaskDue.value;
+  task.recurring = {
+    type: editRecurType,
+    days: editRecurType === 'custom' ? [...modalRecurringDays] : (editRecurType === 'workdays' ? [1, 2, 3, 4, 5] : [])
+  };
   task.description = DOM.editTaskDesc.value.trim();
   task.subtasks = [...currentModalSubtasks];
 
@@ -1135,7 +1350,7 @@ function exportCsv() {
     return;
   }
 
-  const headers = ['ID', 'Judul', 'Deskripsi', 'Kategori', 'Prioritas', 'Tenggat Waktu', 'Status Selesai'];
+  const headers = ['ID', 'Judul', 'Deskripsi', 'Kategori', 'Prioritas', 'Tenggat Waktu', 'Pengulangan', 'Status Selesai'];
   const rows = state.tasks.map(t => [
     `"${t.id}"`,
     `"${(t.title || '').replace(/"/g, '""')}"`,
@@ -1143,6 +1358,7 @@ function exportCsv() {
     `"${t.category}"`,
     `"${t.priority}"`,
     `"${t.dueDate || '-'}"`,
+    `"${formatRecurringLabel(t.recurring) || '-'}"`,
     `"${t.completed ? 'Selesai' : 'Belum'}"`
   ]);
 
@@ -1306,6 +1522,66 @@ function initEventListeners() {
     DOM.taskDetailsDrawer.classList.toggle('open');
     DOM.btnToggleTaskDetails.classList.toggle('active');
   });
+
+  // Quick Add Recurring Dropdown
+  if (DOM.taskInputRecurring) {
+    DOM.taskInputRecurring.addEventListener('change', (e) => {
+      if (DOM.taskInputDaysContainer) {
+        DOM.taskInputDaysContainer.style.display = e.target.value === 'custom' ? 'flex' : 'none';
+      }
+    });
+  }
+
+  // Quick Add Custom Days Selector
+  if (DOM.taskAddDaySelector) {
+    DOM.taskAddDaySelector.addEventListener('click', (e) => {
+      const chip = e.target.closest('.day-chip-btn');
+      if (chip) {
+        const day = parseInt(chip.getAttribute('data-day'), 10);
+        if (draftRecurringDays.includes(day)) {
+          if (draftRecurringDays.length > 1) {
+            draftRecurringDays = draftRecurringDays.filter(d => d !== day);
+          } else {
+            showToast('Pilih minimal 1 hari pengerjaan', 'info');
+          }
+        } else {
+          draftRecurringDays.push(day);
+        }
+        updateDaySelectorChips(DOM.taskAddDaySelector, draftRecurringDays);
+        soundEngine.playPop();
+      }
+    });
+  }
+
+  // Edit Modal Recurring Dropdown
+  if (DOM.editTaskRecurring) {
+    DOM.editTaskRecurring.addEventListener('change', (e) => {
+      if (DOM.editTaskDaysContainer) {
+        DOM.editTaskDaysContainer.style.display = e.target.value === 'custom' ? 'flex' : 'none';
+      }
+    });
+  }
+
+  // Edit Modal Custom Days Selector
+  if (DOM.editTaskDaySelector) {
+    DOM.editTaskDaySelector.addEventListener('click', (e) => {
+      const chip = e.target.closest('.day-chip-btn');
+      if (chip) {
+        const day = parseInt(chip.getAttribute('data-day'), 10);
+        if (modalRecurringDays.includes(day)) {
+          if (modalRecurringDays.length > 1) {
+            modalRecurringDays = modalRecurringDays.filter(d => d !== day);
+          } else {
+            showToast('Pilih minimal 1 hari pengerjaan', 'info');
+          }
+        } else {
+          modalRecurringDays.push(day);
+        }
+        updateDaySelectorChips(DOM.editTaskDaySelector, modalRecurringDays);
+        soundEngine.playPop();
+      }
+    });
+  }
 
   // Add Task Form
   DOM.addTaskForm.addEventListener('submit', handleAddTask);
