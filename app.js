@@ -1008,6 +1008,7 @@ function handleAddTask(e) {
   // Reset form
   DOM.addTaskForm.reset();
   state.draftSubtasks = [];
+  draftEditingIndex = -1;
   renderDraftSubtasks();
   if (DOM.taskInputRecurring) DOM.taskInputRecurring.value = 'none';
   if (DOM.taskInputDaysContainer) DOM.taskInputDaysContainer.style.display = 'none';
@@ -1195,6 +1196,7 @@ function openEditModal(taskId) {
     updateDaySelectorChips(DOM.editTaskDaySelector, modalRecurringDays);
   }
 
+  modalEditingSubIndex = -1;
   currentModalSubtasks = JSON.parse(JSON.stringify(task.subtasks || []));
   renderModalSubtasks();
 
@@ -1202,21 +1204,97 @@ function openEditModal(taskId) {
   refreshLucideIcons();
 }
 
+let modalEditingSubIndex = -1;
+
 function renderModalSubtasks() {
-  DOM.modalSubtasksContainer.innerHTML = currentModalSubtasks.map((sub, idx) => `
-    <div class="modal-subtask-item">
-      <div class="modal-subtask-left">
-        <input type="checkbox" ${sub.completed ? 'checked' : ''} onchange="window.toggleModalSub(${idx})">
-        <span>${escapeHtml(sub.text)}</span>
+  DOM.modalSubtasksContainer.innerHTML = currentModalSubtasks.map((sub, idx) => {
+    if (modalEditingSubIndex === idx) {
+      return `
+        <div class="modal-subtask-item editing">
+          <div class="modal-subtask-edit-wrap">
+            <input 
+              type="text" 
+              class="modal-subtask-inline-input" 
+              id="modal-sub-input-${idx}" 
+              value="${escapeHtml(sub.text)}" 
+              onkeydown="window.handleModalSubKey(event, ${idx})"
+            >
+          </div>
+          <div class="modal-subtask-actions">
+            <button type="button" class="modal-subtask-save-btn" onclick="window.saveModalSubEdit(${idx})" title="Simpan (Enter)">
+              <i data-lucide="check" style="width:14px;height:14px;"></i>
+            </button>
+            <button type="button" class="modal-subtask-cancel-btn" onclick="window.cancelModalSubEdit()" title="Batal (Esc)">
+              <i data-lucide="x" style="width:14px;height:14px;"></i>
+            </button>
+          </div>
+        </div>
+      `;
+    }
+
+    return `
+      <div class="modal-subtask-item">
+        <div class="modal-subtask-left" ondblclick="window.startModalSubEdit(${idx})" title="Klik dua kali untuk mengedit teks">
+          <input type="checkbox" ${sub.completed ? 'checked' : ''} onchange="window.toggleModalSub(${idx})">
+          <span class="modal-subtask-text">${escapeHtml(sub.text)}</span>
+        </div>
+        <div class="modal-subtask-actions">
+          <button type="button" class="modal-subtask-edit-btn" onclick="window.startModalSubEdit(${idx})" title="Edit Subtask">
+            <i data-lucide="edit-2" style="width:13px;height:13px;"></i>
+          </button>
+          <button type="button" class="modal-subtask-del-btn" onclick="window.removeModalSub(${idx})" title="Hapus Subtask">
+            <i data-lucide="trash-2" style="width:13px;height:13px;"></i>
+          </button>
+        </div>
       </div>
-      <button type="button" class="modal-subtask-del-btn" onclick="window.removeModalSub(${idx})">
-        <i data-lucide="x" style="width:14px;height:14px;"></i>
-      </button>
-    </div>
-  `).join('');
+    `;
+  }).join('');
 
   refreshLucideIcons();
+
+  if (modalEditingSubIndex !== -1) {
+    setTimeout(() => {
+      const input = document.getElementById(`modal-sub-input-${modalEditingSubIndex}`);
+      if (input) {
+        input.focus();
+        input.select();
+      }
+    }, 50);
+  }
 }
+
+window.startModalSubEdit = function(idx) {
+  modalEditingSubIndex = idx;
+  renderModalSubtasks();
+};
+
+window.saveModalSubEdit = function(idx) {
+  const input = document.getElementById(`modal-sub-input-${idx}`);
+  if (input) {
+    const val = input.value.trim();
+    if (val) {
+      currentModalSubtasks[idx].text = val;
+    }
+  }
+  modalEditingSubIndex = -1;
+  renderModalSubtasks();
+  soundEngine.playPop();
+};
+
+window.cancelModalSubEdit = function() {
+  modalEditingSubIndex = -1;
+  renderModalSubtasks();
+};
+
+window.handleModalSubKey = function(e, idx) {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    window.saveModalSubEdit(idx);
+  } else if (e.key === 'Escape') {
+    e.preventDefault();
+    window.cancelModalSubEdit();
+  }
+};
 
 window.toggleModalSub = function(idx) {
   if (currentModalSubtasks[idx]) {
@@ -1227,6 +1305,9 @@ window.toggleModalSub = function(idx) {
 
 window.removeModalSub = function(idx) {
   currentModalSubtasks.splice(idx, 1);
+  if (modalEditingSubIndex === idx) {
+    modalEditingSubIndex = -1;
+  }
   renderModalSubtasks();
 };
 
@@ -1263,6 +1344,8 @@ function handleSaveEditTask(e) {
 // DRAFT SUBTASKS (FOR QUICK ADD)
 // ==========================================================================
 
+let draftEditingIndex = -1;
+
 function handleAddDraftSubtask() {
   const text = DOM.draftSubtaskInput.value.trim();
   if (!text) return;
@@ -1278,17 +1361,84 @@ function handleAddDraftSubtask() {
 }
 
 function renderDraftSubtasks() {
-  DOM.draftSubtasksContainer.innerHTML = state.draftSubtasks.map((sub, i) => `
-    <div class="draft-subtask-chip">
-      <span>${escapeHtml(sub.text)}</span>
-      <button type="button" class="btn-remove-chip" data-draft-index="${i}">
-        <i data-lucide="x" style="width:12px;height:12px;"></i>
-      </button>
-    </div>
-  `).join('');
+  DOM.draftSubtasksContainer.innerHTML = state.draftSubtasks.map((sub, i) => {
+    if (draftEditingIndex === i) {
+      return `
+        <div class="draft-subtask-chip editing">
+          <input 
+            type="text" 
+            class="draft-subtask-inline-input" 
+            id="draft-sub-input-${i}" 
+            value="${escapeHtml(sub.text)}" 
+            onkeydown="window.handleDraftSubKey(event, ${i})"
+            onblur="window.saveDraftSubEdit(${i})"
+          >
+          <button type="button" class="btn-save-draft-chip" onmousedown="window.saveDraftSubEdit(${i})" title="Simpan">
+            <i data-lucide="check" style="width:11px;height:11px;"></i>
+          </button>
+        </div>
+      `;
+    }
+
+    return `
+      <div class="draft-subtask-chip">
+        <span class="draft-chip-text" onclick="window.startDraftSubEdit(${i})" title="Klik untuk mengedit">${escapeHtml(sub.text)}</span>
+        <button type="button" class="btn-edit-chip" onclick="window.startDraftSubEdit(${i})" title="Edit subtask">
+          <i data-lucide="edit-2" style="width:11px;height:11px;"></i>
+        </button>
+        <button type="button" class="btn-remove-chip" data-draft-index="${i}" title="Hapus subtask">
+          <i data-lucide="x" style="width:11px;height:11px;"></i>
+        </button>
+      </div>
+    `;
+  }).join('');
 
   refreshLucideIcons();
+
+  if (draftEditingIndex !== -1) {
+    setTimeout(() => {
+      const input = document.getElementById(`draft-sub-input-${draftEditingIndex}`);
+      if (input) {
+        input.focus();
+        input.select();
+      }
+    }, 50);
+  }
 }
+
+window.startDraftSubEdit = function(idx) {
+  draftEditingIndex = idx;
+  renderDraftSubtasks();
+};
+
+window.saveDraftSubEdit = function(idx) {
+  if (draftEditingIndex === -1) return;
+  const input = document.getElementById(`draft-sub-input-${idx}`);
+  if (input) {
+    const val = input.value.trim();
+    if (val) {
+      state.draftSubtasks[idx].text = val;
+    }
+  }
+  draftEditingIndex = -1;
+  renderDraftSubtasks();
+  soundEngine.playPop();
+};
+
+window.cancelDraftSubEdit = function() {
+  draftEditingIndex = -1;
+  renderDraftSubtasks();
+};
+
+window.handleDraftSubKey = function(e, idx) {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    window.saveDraftSubEdit(idx);
+  } else if (e.key === 'Escape') {
+    e.preventDefault();
+    window.cancelDraftSubEdit();
+  }
+};
 
 // ==========================================================================
 // CATEGORY MODAL WORKFLOW

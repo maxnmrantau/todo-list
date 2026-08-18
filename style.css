@@ -1032,18 +1032,62 @@ html, body {
   border-radius: var(--radius-full);
   font-size: 0.785rem;
   color: var(--text-primary);
+  transition: all var(--transition-fast);
 }
 
-.draft-subtask-chip .btn-remove-chip {
+.draft-subtask-chip.editing {
+  background: var(--bg-input-focus);
+  border-color: var(--accent-primary);
+  padding: 0.15rem 0.45rem;
+}
+
+.draft-chip-text {
+  cursor: pointer;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.draft-chip-text:hover {
+  color: #ffffff;
+}
+
+.draft-subtask-inline-input {
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text-primary);
+  font-size: 0.785rem;
+  font-family: inherit;
+  min-width: 80px;
+  max-width: 150px;
+}
+
+.btn-edit-chip, .btn-remove-chip, .btn-save-draft-chip {
   background: transparent;
   border: none;
   color: var(--text-muted);
   cursor: pointer;
   display: flex;
   align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: color var(--transition-fast);
 }
-.draft-subtask-chip .btn-remove-chip:hover {
+
+.btn-edit-chip:hover {
+  color: var(--accent-primary);
+}
+
+.btn-remove-chip:hover {
   color: var(--status-urgent);
+}
+
+.btn-save-draft-chip {
+  color: var(--status-low);
+}
+.btn-save-draft-chip:hover {
+  color: #34d399;
 }
 
 /* ==========================================================================
@@ -1752,7 +1796,7 @@ html, body {
   display: flex;
   flex-direction: column;
   gap: 0.45rem;
-  max-height: 160px;
+  max-height: 180px;
   overflow-y: auto;
   padding: 0.25rem;
 }
@@ -1761,11 +1805,18 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 0.5rem;
   padding: 0.45rem 0.65rem;
   background: var(--bg-input);
   border: var(--glass-border);
   border-radius: var(--radius-sm);
   font-size: 0.85rem;
+  transition: all var(--transition-fast);
+}
+
+.modal-subtask-item.editing {
+  border-color: var(--accent-primary);
+  background: var(--bg-input-focus);
 }
 
 .modal-subtask-left {
@@ -1773,16 +1824,83 @@ html, body {
   align-items: center;
   gap: 0.5rem;
   flex: 1;
-}
-
-.modal-subtask-del-btn {
-  background: transparent;
-  border: none;
-  color: var(--text-muted);
+  min-width: 0;
   cursor: pointer;
 }
+
+.modal-subtask-text {
+  word-break: break-word;
+  color: var(--text-primary);
+  flex: 1;
+}
+
+.modal-subtask-edit-wrap {
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+
+.modal-subtask-inline-input {
+  width: 100%;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  font-family: inherit;
+  padding: 0.15rem 0;
+}
+
+.modal-subtask-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.modal-subtask-edit-btn,
+.modal-subtask-del-btn,
+.modal-subtask-save-btn,
+.modal-subtask-cancel-btn {
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25rem;
+  transition: all var(--transition-fast);
+}
+
+.modal-subtask-edit-btn:hover {
+  color: var(--accent-primary);
+  background: rgba(99, 102, 241, 0.15);
+}
+
 .modal-subtask-del-btn:hover {
   color: var(--status-urgent);
+  background: rgba(239, 68, 68, 0.15);
+}
+
+.modal-subtask-save-btn {
+  background: var(--accent-primary);
+  color: #ffffff;
+  padding: 0.25rem 0.45rem;
+}
+.modal-subtask-save-btn:hover {
+  background: var(--accent-primary-hover);
+  color: #ffffff;
+}
+
+.modal-subtask-cancel-btn {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-secondary);
+  padding: 0.25rem 0.45rem;
+}
+.modal-subtask-cancel-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: var(--text-primary);
 }
 
 /* Category Color Palette */
