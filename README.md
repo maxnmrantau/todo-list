@@ -116,7 +116,7 @@ Todo List/
 ├── app.js             # State management, sound engine, filter, subtasks, & confetti
 ├── vercel.json        # Konfigurasi routing, cache, dan security headers Vercel
 ├── package.json       # Metadata proyek & script build Vite
-└── README.md          # Dokumentasi proyek & panduan deploy
+└── README.md          # Dokumentasi proyek & panduan deploy.
 ```
 
 ---
